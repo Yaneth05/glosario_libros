@@ -28,6 +28,9 @@ Route::get('/termino/create',[TerminoController::class,'create']);*/
 //forma para aceder para todas las urls de un golpe
 Route::resource('termino',TerminoController::class);
 
+Route::post('/index', [TerminoController::class, 'show'])->name('index.ajax');
+
+
 Auth::routes();
 
 Route::get('/home', [TerminoController::class, 'index'])->name('home');//al escribir home nos lleva al inicio del crud

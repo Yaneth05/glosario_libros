@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\termino;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class TerminoController extends Controller
@@ -15,7 +15,7 @@ class TerminoController extends Controller
     public function index()
     {
         //termino cambiarlo si no funciona T
-        $datos['terminos']=termino::paginate(5);
+        $datos['terminos']=termino::paginate(20);
         return view('termino.index', $datos);
     }
 
@@ -33,26 +33,47 @@ class TerminoController extends Controller
      */
     public function store(Request $request)
     {
-        //Se retornan los datos que envio el formulario
-        //$datosTermino = request()->all();
-        $datosTermino = request()->except('_token');//recolecta toda la informcion excepto el token(valor de seguridad)
+        // Recolectar los datos que envió el formulario
+        $datosTermino = request()->except('_token');
 
+        // Truncar la descripción si es demasiado larga
+        $descripcion = substr($request->input('descripcion'), 0); // Truncar a 255 caracteres
+        $datosTermino['descripcion'] = $descripcion;
+
+        // Manejar la subida de imagen si está presente
         if ($request->hasFile('imagen')) {
             $datosTermino['imagen'] = $request->file('imagen')->store('uploads', 'public');
         }
-        
-    
-        termino::insert($datosTermino);//para insertar datos
-        //return response()->json($datosTermino);//retornar un json(toda la informacion)
-        return redirect('termino')->with('mensaje','¡Termino agregado con éxito 👍!');//nos retorna a index en mensaje y l¿tira el mensaje
+
+        // Insertar datos
+        Termino::insert($datosTermino);
+
+        // Redirigir con mensaje de éxito
+        return redirect('termino')->with('mensaje', '¡Término agregado con éxito 👍!');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(termino $termino)
+    public function show(Request $request)
     {
-        //
+        $id = $request->input('id');
+        $termino = termino::find($id);
+    
+        if (!$termino) {
+            return response()->json(['error' => 'Término no encontrado'], 404);
+        }
+    
+        $imagenURL = null;
+        if ($termino->imagen && Storage::exists('public/uploads/' . $termino->imagen)) {
+            $imagenURL = asset('storage/uploads/' . $termino->imagen);
+        }
+    
+        return response()->json([
+            'termino' => $termino->termino,
+            'descripcion' => $termino->descripcion,
+            'imagen' => $imagenURL,
+        ]);
     }
 
     /**

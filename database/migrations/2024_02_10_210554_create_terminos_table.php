@@ -13,11 +13,9 @@ return new class extends Migration
     {
         Schema::create('terminos', function (Blueprint $table) {
             $table->id();
-
-            $table->string('termino');
-            $table->string('descripcion');
-            $table->string('imagen');
-            
+            $table->string('termino',255);
+            $table->string('descripcion',255);
+            $table->string('imagen')->nullable(); // Permitir valores nulos en el campo 'imagen'
             $table->timestamps();
         });
     }
