@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\termino;
+use App\Models\Termino;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class TerminoController extends Controller
@@ -14,9 +13,8 @@ class TerminoController extends Controller
      */
     public function index()
     {
-        //termino cambiarlo si no funciona T
-        $datos['terminos']=termino::paginate(20);
-        return view('termino.index', $datos);
+        $terminos = Termino::paginate(20);
+        return view('termino.index', compact('terminos'));
     }
 
     /**
@@ -24,8 +22,7 @@ class TerminoController extends Controller
      */
     public function create()
     {
-       //para q se pueda ver 
-       return view('termino.create');
+        return view('termino.create');
     }
 
     /**
@@ -33,23 +30,27 @@ class TerminoController extends Controller
      */
     public function store(Request $request)
     {
-        // Recolectar los datos que envió el formulario
-        $datosTermino = request()->except('_token');
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'autor' => 'required|string|max:255',
+            'fechaPublicacion' => 'required|string|max:255',
+            'editorial' => 'required|string|max:255',
+            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
-        // Truncar la descripción si es demasiado larga
-        $descripcion = substr($request->input('descripcion'), 0); // Truncar a 255 caracteres
-        $datosTermino['descripcion'] = $descripcion;
+        $termino = new Termino();
+        $termino->nombre = $request->nombre;
+        $termino->autor = $request->autor;
+        $termino->fechaPublicacion = $request->fechaPublicacion;
+        $termino->editorial = $request->editorial;
 
-        // Manejar la subida de imagen si está presente
         if ($request->hasFile('imagen')) {
-            $datosTermino['imagen'] = $request->file('imagen')->store('uploads', 'public');
+            $termino->imagen = $request->file('imagen')->store('uploads', 'public');
         }
 
-        // Insertar datos
-        Termino::insert($datosTermino);
+        $termino->save();
 
-        // Redirigir con mensaje de éxito
-        return redirect('termino')->with('mensaje', '¡Término agregado con éxito 👍!');
+        return redirect('termino')->with('mensaje', '¡Término agregado con éxito!');
     }
 
     /**
@@ -58,20 +59,22 @@ class TerminoController extends Controller
     public function show(Request $request)
     {
         $id = $request->input('id');
-        $termino = termino::find($id);
-    
+        $termino = Termino::find($id);
+
         if (!$termino) {
             return response()->json(['error' => 'Término no encontrado'], 404);
         }
-    
+
         $imagenURL = null;
-        if ($termino->imagen && Storage::exists('public/uploads/' . $termino->imagen)) {
-            $imagenURL = asset('storage/uploads/' . $termino->imagen);
+        if ($termino->imagen && Storage::exists('public/' . $termino->imagen)) {
+            $imagenURL = asset('storage/' . $termino->imagen);
         }
-    
+
         return response()->json([
-            'termino' => $termino->termino,
-            'descripcion' => $termino->descripcion,
+            'nombre' => $termino->nombre,
+            'autor' => $termino->autor,
+            'fechaPublicacion' => $termino->fechaPublicacion,
+            'editorial' => $termino->editorial,
             'imagen' => $imagenURL,
         ]);
     }
@@ -81,28 +84,37 @@ class TerminoController extends Controller
      */
     public function edit($id)
     {
-        //
-        $termino=termino::findOrFail($id);
-        return view('termino.edit',compact('termino'));
+        $termino = Termino::findOrFail($id);
+        return view('termino.edit', compact('termino'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
-        //
-        $datosTermino = request()->except(['_token','_method']);//recolecta los datos ecepto el token y method
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'autor' => 'required|string|max:255',
+            'fechaPublicacion' => 'required|string|max:255',
+            'editorial' => 'required|string|max:255',
+            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $termino = Termino::findOrFail($id);
+        $termino->nombre = $request->nombre;
+        $termino->autor = $request->autor;
+        $termino->fechaPublicacion = $request->fechaPublicacion;
+        $termino->editorial = $request->editorial;
 
         if ($request->hasFile('imagen')) {
-            $termino=termino::findOrFail($id);//recuperar la informacion
-            Storage::delete(['public/'.$termino->imagen]);//concatene la imagen y hace el borrado
-            $datosTermino['imagen'] = $request->file('imagen')->store('uploads', 'public');//actualizar
+            Storage::delete(['public/' . $termino->imagen]);
+            $termino->imagen = $request->file('imagen')->store('uploads', 'public');
         }
 
-        termino::where('id','=',$id)->update($datosTermino);//actualizar la base de datos
-        $termino=termino::findOrFail($id);
-        return view('termino.edit',compact('termino'));
+        $termino->save();
+
+        return redirect('termino')->with('mensaje', '¡Término actualizado con éxito!');
     }
 
     /**
@@ -110,13 +122,24 @@ class TerminoController extends Controller
      */
     public function destroy($id)
     {
-        //
-        $termino=termino::findOrFail($id);//se busca
-        if(Storage::delete('public/'.$termino->imagen)){//si ya se borro fisicamente
-            termino::destroy($id);//se destruye por completo
-        }
-        
+        $termino = Termino::findOrFail($id);
 
-        return redirect('termino')->with('mensaje','¡Termino borrado éxitosamente 👍!');
+        if ($termino->imagen && Storage::exists('public/' . $termino->imagen)) {
+            Storage::delete('public/' . $termino->imagen);
+        }
+
+        $termino->delete();
+
+        return redirect('termino')->with('mensaje', '¡Término eliminado exitosamente!');
+    }
+
+    //esto es para la funcion buscar
+    public function buscar(Request $request) {
+        $termino = $request->input('termino');
+        $terminos = Termino::where('nombre', 'LIKE', "%$termino%")
+                            ->orWhere('autor', 'LIKE', "%$termino%")
+                            ->get();
+    
+        return view('termino.index', ['terminos' => $terminos]);
     }
 }

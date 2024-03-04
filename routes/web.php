@@ -34,3 +34,6 @@ Route::post('/index', [TerminoController::class, 'show'])->name('index.ajax');
 Auth::routes();
 
 Route::get('/home', [TerminoController::class, 'index'])->name('home');//al escribir home nos lleva al inicio del crud
+
+//para dirigir a la funcion buscar que esta en el controller
+Route::post('/buscar', [TerminoController::class, 'buscar'])->name('buscar');

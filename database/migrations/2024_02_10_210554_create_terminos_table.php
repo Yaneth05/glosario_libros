@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('terminos', function (Blueprint $table) {
-            $table->id();
-            $table->string('termino',255);
-            $table->string('descripcion',255);
-            $table->string('imagen')->nullable(); // Permitir valores nulos en el campo 'imagen'
+        Schema::create('terminos', function (Blueprint $table) {//lo dejare como termino
+            $table->id();//clave
+            $table->string('nombre',255);//era termino
+            $table->string('autor',255);//era descripcion
+            $table->string('fechaPublicacion', 255);//nuevo
+            $table->string('editorial', 255);//nuevo
+            $table->string('imagen')->nullable(); // Permitir valores nulos en el campo 'imagen'-->portada
             $table->timestamps();
         });
     }
